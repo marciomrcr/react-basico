@@ -1,36 +1,85 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-
-interface ITask {
-  id: number;
-  title: string;
-  isCompleted: boolean;
-}
+import { ApiException } from "../../shared/services/api/ApiException";
+import {
+  ITask,
+  TasksService,
+} from "../../shared/services/api/tarefas/TasksService";
 
 export const Dashboard = () => {
   const [lista, setLista] = useState<ITask[]>([]);
 
+  useEffect(() => {
+    TasksService.getAll().then((result) => {
+      if (result instanceof ApiException) {
+        alert(result.message);
+      } else {
+        setLista(result);
+      }
+    });
+  }, []);
+
   const handleInputKeyDown: React.KeyboardEventHandler<HTMLInputElement> =
-    useCallback((e) => {
-      if (e.currentTarget.value.trim().length === 0) return;
+    useCallback(
+      (e) => {
+        if (e.key === "Enter") {
+          if (e.currentTarget.value.trim().length === 0) return;
 
-      const value = e.currentTarget.value;
+          const value = e.currentTarget.value;
 
-      e.currentTarget.value = "";
-      setLista((oldLista) => {
-        if (oldLista.some((listItem) => listItem.title === value))
-          return oldLista;
+          e.currentTarget.value = "";
 
-        return [
-          ...oldLista,
-          {
-            id: oldLista.length,
-            title: value,
-            isCompleted: false,
-          },
-        ];
+          if (lista.some((listItem) => listItem.title === value)) return;
+
+          TasksService.create({ title: value, isCompleted: false }).then(
+            (result) => {
+              if (result instanceof ApiException) {
+                alert(result.message);
+              } else {
+                setLista((oldLista) => [...oldLista, result]);
+              }
+            }
+          );
+        }
+      },
+      [lista]
+    );
+
+  const handleToggleComplete = useCallback(
+    (id: number) => {
+      const taskToUpdate = lista.find((task) => task.id === id);
+      if (!taskToUpdate) return;
+
+      TasksService.updateById(id, {
+        ...taskToUpdate,
+        isCompleted: !taskToUpdate.isCompleted,
+      }).then((result) => {
+        if (result instanceof ApiException) {
+          alert(result.message);
+        } else {
+          setLista((oldLista) => {
+            return oldLista.map((oldListItem) => {
+              if (oldListItem.id === id) return result;
+              return oldListItem;
+            });
+          });
+        }
       });
-    }, []);
+    },
+    [lista]
+  );
+
+  const handleDelete = useCallback((id: number) => {
+    TasksService.deleteById(id).then((result) => {
+      if (result instanceof ApiException) {
+        alert(result.message);
+      } else {
+        setLista((oldLista) => {
+          return oldLista.filter((oldListItem) => oldListItem.id !== id);
+        });
+      }
+    });
+  }, []);
 
   return (
     <div>
@@ -40,28 +89,16 @@ export const Dashboard = () => {
       <input onKeyDown={handleInputKeyDown} />
       <p>{lista.filter((listItem) => listItem.isCompleted).length}</p>
       <ul>
-        {lista.map((listItem, index) => {
+        {lista.map((listItem) => {
           return (
             <li key={listItem.id}>
               <input
                 type="checkbox"
                 checked={listItem.isCompleted}
-                onChange={() => {
-                  setLista((oldLista) => {
-                    return oldLista.map((oldListItem) => {
-                      const newListCompleted =
-                        oldListItem.title === listItem.title
-                          ? !oldListItem.isCompleted
-                          : oldListItem.isCompleted;
-                      return {
-                        ...oldListItem,
-                        isCompleted: newListCompleted,
-                      };
-                    });
-                  });
-                }}
+                onChange={() => handleToggleComplete(listItem.id)}
               />
               {listItem.title}
+              <button onClick={() => handleDelete(listItem.id)}>Excluir</button>
             </li>
           );
         })}

@@ -1,7 +1,7 @@
 import { Api } from "../ApiConfig";
 import { ApiException } from "../ApiException";
 
-interface ITask {
+export interface ITask {
   id: number;
   title: string;
   isCompleted: boolean;
@@ -9,7 +9,7 @@ interface ITask {
 
 const getAll = async (): Promise<ITask[] | ApiException> => {
   try {
-    const { data } = await Api().get("/task");
+    const { data } = await Api().get("/tasks");
     return data;
   } catch (error: any) {
     return new ApiException(error.message || "Erro ao consultar os registros");
@@ -17,7 +17,7 @@ const getAll = async (): Promise<ITask[] | ApiException> => {
 };
 const getById = async (id: number): Promise<ITask | ApiException> => {
   try {
-    const { data } = await Api().get(`/task/${id}`);
+    const { data } = await Api().get(`/tasks/${id}`);
     return data;
   } catch (error: any) {
     return new ApiException(error.message || "Erro ao consultar o registro");
@@ -28,7 +28,7 @@ const create = async (
   dataToCreate: Omit<ITask, "id">
 ): Promise<ITask | ApiException> => {
   try {
-    const { data } = await Api().post("/task", dataToCreate);
+    const { data } = await Api().post("/tasks", dataToCreate);
     return data;
   } catch (error: any) {
     return new ApiException(error.message || "Erro ao criar a tarefa");
@@ -36,26 +36,26 @@ const create = async (
 };
 
 const updateById = async (
-  id: string,
+  id: number,
   dataToUpdate: ITask
 ): Promise<ITask | ApiException> => {
   try {
-    const { data } = await Api().put(`/task/${id}`, dataToUpdate);
+    const { data } = await Api().put(`/tasks/${id}`, dataToUpdate);
     return data;
   } catch (error: any) {
     return new ApiException(error.message || "Erro ao atualizar o registro");
   }
 };
-const deleteById = async (id: string): Promise<undefined | ApiException> => {
+const deleteById = async (id: number): Promise<undefined | ApiException> => {
   try {
-    await Api().get(`/task/${id}`);
+    await Api().delete(`/tasks/${id}`);
     return undefined;
   } catch (error: any) {
     return new ApiException(error.message || "Erro ao excluir o registro");
   }
 };
 
-export const TarefasService = {
+export const TasksService = {
   getAll,
   getById,
   create,
